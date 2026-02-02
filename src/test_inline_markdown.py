@@ -1,6 +1,6 @@
 import unittest
 from textnode import TextNode, TextType
-from inline_markdown import split_nodes_delimiter, extract_markdown_images, extract_markdown_links
+from inline_markdown import split_nodes_delimiter, extract_markdown_images, extract_markdown_links, split_nodes_image, split_nodes_link
 
 
 class TestSplitNodesDelimiter(unittest.TestCase):
@@ -149,6 +149,168 @@ class TestExtractMarkdownLinks(unittest.TestCase):
     def test_links_and_images_mixed(self):
         text = "A [link](https://link.com) and ![image](https://image.com) together"
         self.assertEqual(extract_markdown_links(text), [("link", "https://link.com")])
+
+class TestSplitNodesImage(unittest.TestCase):
+    def test_single_image(self):
+        node = TextNode("This is ![alt](https://example.com/img.png) text", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertEqual(new_nodes, [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("alt", TextType.IMAGE, "https://example.com/img.png"),
+            TextNode(" text", TextType.TEXT),
+        ])
+
+    def test_multiple_images(self):
+        node = TextNode("![one](https://one.com) and ![two](https://two.com)", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertEqual(new_nodes, [
+            TextNode("one", TextType.IMAGE, "https://one.com"),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("two", TextType.IMAGE, "https://two.com"),
+        ])
+
+    def test_image_at_start(self):
+        node = TextNode("![img](https://example.com) after", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertEqual(new_nodes, [
+            TextNode("img", TextType.IMAGE, "https://example.com"),
+            TextNode(" after", TextType.TEXT),
+        ])
+
+    def test_image_at_end(self):
+        node = TextNode("before ![img](https://example.com)", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertEqual(new_nodes, [
+            TextNode("before ", TextType.TEXT),
+            TextNode("img", TextType.IMAGE, "https://example.com"),
+        ])
+
+    def test_only_image(self):
+        node = TextNode("![img](https://example.com)", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertEqual(new_nodes, [
+            TextNode("img", TextType.IMAGE, "https://example.com"),
+        ])
+
+    def test_no_images(self):
+        node = TextNode("plain text with no images", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertEqual(new_nodes, [
+            TextNode("plain text with no images", TextType.TEXT),
+        ])
+
+    def test_non_text_node_unchanged(self):
+        node = TextNode("bold text", TextType.BOLD)
+        new_nodes = split_nodes_image([node])
+        self.assertEqual(new_nodes, [node])
+
+    def test_multiple_nodes_input(self):
+        nodes = [
+            TextNode("![img](https://example.com)", TextType.TEXT),
+            TextNode("already bold", TextType.BOLD),
+            TextNode("text ![img2](https://two.com) here", TextType.TEXT),
+        ]
+        new_nodes = split_nodes_image(nodes)
+        self.assertEqual(new_nodes, [
+            TextNode("img", TextType.IMAGE, "https://example.com"),
+            TextNode("already bold", TextType.BOLD),
+            TextNode("text ", TextType.TEXT),
+            TextNode("img2", TextType.IMAGE, "https://two.com"),
+            TextNode(" here", TextType.TEXT),
+        ])
+
+    def test_link_not_image(self):
+        node = TextNode("This is [link](https://example.com) not image", TextType.TEXT)
+        new_nodes = split_nodes_image([node])
+        self.assertEqual(new_nodes, [
+            TextNode("This is [link](https://example.com) not image", TextType.TEXT),
+        ])
+
+class TestSplitNodesLink(unittest.TestCase):
+    def test_single_link(self):
+        node = TextNode("This is [anchor](https://example.com) text", TextType.TEXT)
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(new_nodes, [
+            TextNode("This is ", TextType.TEXT),
+            TextNode("anchor", TextType.ANCHOR, "https://example.com"),
+            TextNode(" text", TextType.TEXT),
+        ])
+
+    def test_multiple_links(self):
+        node = TextNode("[one](https://one.com) and [two](https://two.com)", TextType.TEXT)
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(new_nodes, [
+            TextNode("one", TextType.ANCHOR, "https://one.com"),
+            TextNode(" and ", TextType.TEXT),
+            TextNode("two", TextType.ANCHOR, "https://two.com"),
+        ])
+
+    def test_link_at_start(self):
+        node = TextNode("[link](https://example.com) after", TextType.TEXT)
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(new_nodes, [
+            TextNode("link", TextType.ANCHOR, "https://example.com"),
+            TextNode(" after", TextType.TEXT),
+        ])
+
+    def test_link_at_end(self):
+        node = TextNode("before [link](https://example.com)", TextType.TEXT)
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(new_nodes, [
+            TextNode("before ", TextType.TEXT),
+            TextNode("link", TextType.ANCHOR, "https://example.com"),
+        ])
+
+    def test_only_link(self):
+        node = TextNode("[link](https://example.com)", TextType.TEXT)
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(new_nodes, [
+            TextNode("link", TextType.ANCHOR, "https://example.com"),
+        ])
+
+    def test_no_links(self):
+        node = TextNode("plain text with no links", TextType.TEXT)
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(new_nodes, [
+            TextNode("plain text with no links", TextType.TEXT),
+        ])
+
+    def test_non_text_node_unchanged(self):
+        node = TextNode("bold text", TextType.BOLD)
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(new_nodes, [node])
+
+    def test_multiple_nodes_input(self):
+        nodes = [
+            TextNode("[link](https://example.com)", TextType.TEXT),
+            TextNode("already bold", TextType.BOLD),
+            TextNode("text [link2](https://two.com) here", TextType.TEXT),
+        ]
+        new_nodes = split_nodes_link(nodes)
+        self.assertEqual(new_nodes, [
+            TextNode("link", TextType.ANCHOR, "https://example.com"),
+            TextNode("already bold", TextType.BOLD),
+            TextNode("text ", TextType.TEXT),
+            TextNode("link2", TextType.ANCHOR, "https://two.com"),
+            TextNode(" here", TextType.TEXT),
+        ])
+
+    def test_image_not_link(self):
+        node = TextNode("This is ![img](https://example.com) not link", TextType.TEXT)
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(new_nodes, [
+            TextNode("This is ![img](https://example.com) not link", TextType.TEXT),
+        ])
+
+    def test_mixed_links_and_images(self):
+        node = TextNode("A [link](https://link.com) and ![img](https://img.com)", TextType.TEXT)
+        new_nodes = split_nodes_link([node])
+        self.assertEqual(new_nodes, [
+            TextNode("A ", TextType.TEXT),
+            TextNode("link", TextType.ANCHOR, "https://link.com"),
+            TextNode(" and ![img](https://img.com)", TextType.TEXT),
+        ])
+
 
 if __name__ == '__main__':
     unittest.main()
