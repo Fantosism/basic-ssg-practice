@@ -24,7 +24,7 @@ def copy_source_to_target(source, target):
             print(f"Entering directory: {item}")
             copy_source_to_target(source_path, target_path)
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath):
     print(f"Generating page: {os.path.relpath(from_path)} -> {os.path.relpath(dest_path)} using {os.path.relpath(template_path)}")
 
     with open(from_path, "r") as f:
@@ -38,7 +38,9 @@ def generate_page(from_path, template_path, dest_path):
 
     title = extract_title(markdown)
 
-    page = template.replace("{{ Content }}", html_content).replace("{{ Title }}", title)
+    page = template.replace("{{ Title }}", title).replace("{{ Content }}", html_content)
+    page = page.replace('href="/', f'href="{basepath}')
+    page = page.replace('src="/', f'src="{basepath}')
 
     dest_dir = os.path.dirname(dest_path)
     if dest_dir:
@@ -47,7 +49,7 @@ def generate_page(from_path, template_path, dest_path):
     with open(dest_path, "w") as f:
         f.write(page)
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath):
     print(f"Scanning directory: {os.path.relpath(dir_path_content)}")
     items = os.listdir(dir_path_content)
     for item in items:
@@ -58,9 +60,9 @@ def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
                 dest_file = item.replace(".md", ".html")
                 dest_path = os.path.join(dest_dir_path, dest_file)
                 print(f"  Generating: {os.path.relpath(source_path)} -> {os.path.relpath(dest_path)}")
-                generate_page(source_path, template_path, dest_path)
+                generate_page(source_path, template_path, dest_path, basepath)
             else:
                 print(f"  Skipping non-markdown file: {item}")
         else:
             new_dest_path = os.path.join(dest_dir_path, item)
-            generate_pages_recursive(source_path, template_path, new_dest_path)
+            generate_pages_recursive(source_path, template_path, new_dest_path, basepath)
