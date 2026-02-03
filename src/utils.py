@@ -1,6 +1,9 @@
 import os
 import shutil
 
+from markdown import markdown_to_html_node, extract_title
+
+
 def copy_source_to_target(source, target):
     if os.path.exists(target):
         print(f"Removing existing directory: {os.path.relpath(target)}/")
@@ -20,3 +23,26 @@ def copy_source_to_target(source, target):
         else:
             print(f"Entering directory: {item}")
             copy_source_to_target(source_path, target_path)
+
+def generate_page(from_path, template_path, dest_path):
+    print(f"Generating page: {os.path.relpath(from_path)} -> {os.path.relpath(dest_path)} using {os.path.relpath(template_path)}")
+
+    with open(from_path, "r") as f:
+        markdown = f.read()
+
+    with open(template_path, "r") as f:
+        template = f.read()
+
+    html_node = markdown_to_html_node(markdown)
+    html_content = html_node.to_html()
+
+    title = extract_title(markdown)
+
+    page = template.replace("{{ Content }}", html_content).replace("{{ Title }}", title)
+
+    dest_dir = os.path.dirname(dest_path)
+    if dest_dir:
+        os.makedirs(dest_dir, exist_ok=True)
+
+    with open(dest_path, "w") as f:
+        f.write(page)

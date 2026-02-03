@@ -9,7 +9,7 @@ from markdown import (
     code_to_html_node,
     quote_to_html_node,
     unordered_list_to_html_node,
-    ordered_list_to_html_node,
+    ordered_list_to_html_node, extract_title,
 )
 
 class TestMarkdownToHtmlNode(unittest.TestCase):
@@ -155,7 +155,6 @@ class TestTextToChildren(unittest.TestCase):
             LeafNode("a", "link", {"href": "https://x.com"}),
         ])
 
-
 class TestParagraphToHtmlNode(unittest.TestCase):
     def test_simple(self):
         node = paragraph_to_html_node("Hello world")
@@ -175,7 +174,6 @@ class TestParagraphToHtmlNode(unittest.TestCase):
             LeafNode(None, " and "),
             LeafNode("i", "italic"),
         ]))
-
 
 class TestHeadingToHtmlNode(unittest.TestCase):
     def test_h1(self):
@@ -200,7 +198,6 @@ class TestHeadingToHtmlNode(unittest.TestCase):
             LeafNode("b", "Bold"),
             LeafNode(None, " heading"),
         ]))
-
 
 class TestCodeToHtmlNode(unittest.TestCase):
     def test_simple(self):
@@ -227,7 +224,6 @@ class TestCodeToHtmlNode(unittest.TestCase):
             ParentNode("code", [LeafNode(None, "\n<div>html</div>\n")])
         ]))
 
-
 class TestQuoteToHtmlNode(unittest.TestCase):
     def test_single_line_no_space(self):
         node = quote_to_html_node(">quote")
@@ -251,7 +247,6 @@ class TestQuoteToHtmlNode(unittest.TestCase):
             LeafNode("b", "bold"),
             LeafNode(None, " quote"),
         ]))
-
 
 class TestUnorderedListToHtmlNode(unittest.TestCase):
     def test_single_item(self):
@@ -326,6 +321,22 @@ class TestOrderedListToHtmlNode(unittest.TestCase):
             ])
         ]))
 
+class TestExtractTitle(unittest.TestCase):
+    def test_single_item(self):
+        title = extract_title("# This is a title")
+        self.assertEqual(title, "This is a title")
+
+    def test_no_h1(self):
+        with self.assertRaises(ValueError):
+            extract_title("## This is NOT a valid title")
+
+    def test_multiple_h1(self):
+        with self.assertRaises(ValueError):
+            extract_title("# This is a title\n\n# This is another title")
+
+    def test_no_text(self):
+        with self.assertRaises(ValueError):
+            extract_title("")
 
 if __name__ == '__main__':
     unittest.main()

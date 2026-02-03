@@ -77,3 +77,14 @@ def ordered_list_to_html_node(block):
         children = text_to_children(text)
         li_nodes.append(ParentNode("li", children))
     return ParentNode("ol", li_nodes)
+
+
+def extract_title(markdown):
+    h1_headers = [line[2:].strip() for line in markdown.splitlines() if line.startswith("# ")]
+
+    if not h1_headers:
+        raise ValueError("No title (h1 header) found")
+    if len(h1_headers) > 1:
+        raise ValueError("Only one title allowed per document")
+
+    return h1_headers[0]
