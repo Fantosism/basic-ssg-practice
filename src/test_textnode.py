@@ -22,7 +22,7 @@ class TestTextNode(unittest.TestCase):
 
     def test_repr(self):
         node = TextNode("This is a bold node", TextType.BOLD, "https://www.foo.bar")
-        self.assertEqual("TextNode(This is a bold node, ('bold',), https://www.foo.bar)", repr(node))
+        self.assertEqual("TextNode(This is a bold node, bold, https://www.foo.bar)", repr(node))
 
     def test_text(self):
         node = TextNode("This is a text node", TextType.TEXT)
